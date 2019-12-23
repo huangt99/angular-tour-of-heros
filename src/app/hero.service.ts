@@ -7,7 +7,8 @@ import { catchError, map, tap } from 'rxjs/operators';
  
 import { Hero } from './hero';
 import { MessageService } from './message.service';
- 
+import { GetResponse } from './getresponse'
+
 const httpOptions = {
   headers: new HttpHeaders({ 'Content-Type': 'application/json' })
 };
@@ -15,7 +16,7 @@ const httpOptions = {
 @Injectable()
 export class HeroService {
  
-  private heroesUrl = 'api/heroes';  // URL to web api
+  private heroesUrl = 'http://localhost:8080/heroes';  // URL to web api
  
   constructor(
     private http: HttpClient,
@@ -23,8 +24,9 @@ export class HeroService {
  
   /** GET heroes from the server */
   getHeroes (): Observable<Hero[]> {
-    return this.http.get<Hero[]>(this.heroesUrl)
+    return this.http.get<GetResponse>(this.heroesUrl)
       .pipe(
+        map(response => response._embedded.heroes),
         tap(heroes => this.log(`fetched heroes`)),
         catchError(this.handleError('getHeroes', []))
       );
@@ -59,7 +61,8 @@ export class HeroService {
       // if not search term, return empty hero array.
       return of([]);
     }
-    return this.http.get<Hero[]>(`api/heroes/?name=${term}`).pipe(
+    return this.http.get<GetResponse>(`api/heroes/?name=${term}`).pipe(
+      map(response => response._embedded.heroes),
       tap(_ => this.log(`found heroes matching "${term}"`)),
       catchError(this.handleError<Hero[]>('searchHeroes', []))
     );
@@ -88,7 +91,8 @@ export class HeroService {
  
   /** PUT: update the hero on the server */
   updateHero (hero: Hero): Observable<any> {
-    return this.http.put(this.heroesUrl, hero, httpOptions).pipe(
+    const url = `${this.heroesUrl}/${hero.id}`;
+    return this.http.put(url, hero, httpOptions).pipe(
       tap(_ => this.log(`updated hero id=${hero.id}`)),
       catchError(this.handleError<any>('updateHero'))
     );
